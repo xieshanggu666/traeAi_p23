@@ -11,10 +11,12 @@
         v-model="searchKeyword"
         placeholder="搜索地址"
         show-action
-        action-text="搜索"
         @search="onSearch"
-        @click-action="onSearch"
-      />
+      >
+        <template #action>
+          <div class="search-action-btn" @click.stop="onSearch">搜索</div>
+        </template>
+      </van-search>
     </div>
 
     <div v-if="searchResults.length > 0" class="search-results">
@@ -292,6 +294,14 @@ onBeforeUnmount(() => {
 
 .search-bar .van-search {
   padding: 8px 12px;
+}
+
+.search-action-btn {
+  color: #667eea;
+  font-size: 14px;
+  padding: 0 8px;
+  white-space: nowrap;
+  cursor: pointer;
 }
 
 .search-results {

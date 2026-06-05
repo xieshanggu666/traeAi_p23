@@ -1,6 +1,6 @@
 <template>
   <div class="home-page page-container">
-    <van-nav-bar title="社区互助">
+    <van-nav-bar title="社区互助" class="sticky-nav">
       <template #right>
         <van-icon name="plus" size="20" @click="goPublish" />
       </template>
@@ -108,8 +108,7 @@ const statusOptions = [
   { text: '全部状态', value: '' },
   { text: '待接单', value: 0 },
   { text: '进行中', value: 1 },
-  { text: '已完成', value: 2 },
-  { text: '已取消', value: 3 }
+  { text: '已完成', value: 2 }
 ]
 
 const typeOptions = [
@@ -285,6 +284,12 @@ onBeforeUnmount(() => {
   background-color: #f5f5f5;
 }
 
+.sticky-nav {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+}
+
 .banner {
   margin: 12px;
   border-radius: 12px;
@@ -314,7 +319,7 @@ onBeforeUnmount(() => {
   margin: 0 12px;
   border-radius: 8px;
   overflow: hidden;
-  transition: box-shadow 0.3s ease, border-radius 0.3s ease;
+  transition: box-shadow 0.3s ease, border-radius 0.3s ease, margin 0.3s ease;
 }
 
 .filter-section.is-sticky {
