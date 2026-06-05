@@ -3,7 +3,7 @@
     <van-nav-bar title="个人中心" />
 
     <div class="user-card">
-      <div class="user-avatar-wrapper" @click="openEdit">
+      <div class="user-avatar-wrapper" @click="previewAvatar">
         <img v-if="userStore.userInfo?.avatar" :src="userStore.userInfo.avatar" class="user-avatar-img" />
         <van-icon v-else name="user-o" size="40" color="#fff" />
       </div>
@@ -111,7 +111,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { showDialog, showToast } from 'vant'
+import { showDialog, showToast, showImagePreview } from 'vant'
 import { useUserStore } from '@/store/user'
 import { updateProfile, getProfile, uploadFile } from '@/api/user'
 
@@ -153,6 +153,16 @@ const openEdit = () => {
   editForm.phone = userStore.userInfo?.phone || ''
   editForm.avatar = userStore.userInfo?.avatar || ''
   showEdit.value = true
+}
+
+const previewAvatar = () => {
+  const avatar = userStore.userInfo?.avatar
+  if (avatar) {
+    showImagePreview({
+      images: [avatar],
+      closeable: true
+    })
+  }
 }
 
 const chooseAvatar = () => {

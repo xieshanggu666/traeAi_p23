@@ -61,7 +61,7 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showToast } from 'vant'
-import { AMAP_KEY, getCachedLocation, regeocode } from '@/utils/location'
+import { AMAP_KEY, getCachedLocation, regeocode, searchPlace } from '@/utils/location'
 
 const route = useRoute()
 const router = useRouter()
@@ -127,22 +127,6 @@ const getAddressByLocation = async (lat, lng) => {
   }
 }
 
-const ensurePlaceSearch = () => {
-  return new Promise((resolve, reject) => {
-    if (window.AMap.PlaceSearch) {
-      resolve()
-      return
-    }
-    window.AMap.plugin('AMap.PlaceSearch', () => {
-      if (window.AMap.PlaceSearch) {
-        resolve()
-      } else {
-        reject(new Error('PlaceSearch 插件加载失败'))
-      }
-    })
-  })
-}
-
 const onSearch = async () => {
   if (!searchKeyword.value.trim()) {
     showToast('请输入搜索关键词')
@@ -153,37 +137,20 @@ const onSearch = async () => {
   searchLoading.value = true
 
   try {
-    await ensurePlaceSearch()
-    const placeSearch = new window.AMap.PlaceSearch({
-      pageSize: 10,
-      pageIndex: 1
-    })
-    placeSearch.search(searchKeyword.value, (status, result) => {
-      searchLoading.value = false
-      if (status === 'complete' && result.poiList) {
-        searchResults.value = result.poiList.pois.map(poi => ({
-          id: poi.id,
-          name: poi.name,
-          address: poi.address,
-          district: poi.pname + poi.cityname + poi.adname,
-          latitude: poi.location.lat,
-          longitude: poi.location.lng,
-          province: poi.pname,
-          city: poi.cityname,
-          districtName: poi.adname
-        }))
-        if (searchResults.value.length === 0) {
-          showToast('未找到相关地址')
-        }
-      } else {
-        searchResults.value = []
-        showToast('未找到相关地址')
-      }
-    })
+    const results = await searchPlace(searchKeyword.value)
+    searchResults.value = results.map(poi => ({
+      ...poi,
+      district: poi.province + poi.city + poi.district,
+      districtName: poi.district
+    }))
+    if (searchResults.value.length === 0) {
+      showToast('未找到相关地址')
+    }
   } catch (err) {
-    searchLoading.value = false
     console.error(err)
-    showToast('搜索服务加载失败，请重试')
+    showToast('搜索失败，请重试')
+  } finally {
+    searchLoading.value = false
   }
 }
 

@@ -110,6 +110,42 @@ const regeocode = (latitude, longitude) => {
   })
 }
 
+const searchPlace = (keywords, city = '') => {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script')
+    const callbackName = 'amap_search_' + Date.now()
+
+    window[callbackName] = (data) => {
+      delete window[callbackName]
+      document.body.removeChild(script)
+
+      if (data.status === '1' && data.pois) {
+        resolve(data.pois.map(poi => ({
+          id: poi.id,
+          name: poi.name,
+          address: poi.address || '',
+          province: poi.pname || '',
+          city: poi.cityname || '',
+          district: poi.adname || '',
+          latitude: parseFloat(poi.location.split(',')[1]),
+          longitude: parseFloat(poi.location.split(',')[0])
+        })))
+      } else {
+        resolve([])
+      }
+    }
+
+    const cityParam = city ? `&city=${encodeURIComponent(city)}` : ''
+    script.src = `https://restapi.amap.com/v3/place/text?key=${AMAP_KEY}&keywords=${encodeURIComponent(keywords)}&offset=10&page=1&output=json${cityParam}&callback=${callbackName}`
+    script.onerror = () => {
+      delete window[callbackName]
+      document.body.removeChild(script)
+      reject(new Error('搜索请求失败'))
+    }
+    document.body.appendChild(script)
+  })
+}
+
 const openNavigation = (latitude, longitude, name, address) => {
   if (!latitude || !longitude) {
     showToast('地址坐标不存在')
@@ -145,6 +181,7 @@ export {
   calculateDistance,
   formatDistance,
   regeocode,
+  searchPlace,
   openNavigation,
   openWebNavigation
 }
