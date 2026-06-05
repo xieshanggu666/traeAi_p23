@@ -1,0 +1,462 @@
+<template>
+  <div class="home-page page-container">
+    <van-nav-bar title="社区互助">
+      <template #right>
+        <van-icon name="plus" size="20" @click="goPublish" />
+      </template>
+    </van-nav-bar>
+
+    <div class="banner">
+      <div class="banner-content">
+        <h2>邻里互助，温暖相伴</h2>
+        <p>发布需求，互帮互助</p>
+      </div>
+    </div>
+
+    <van-tabs v-model:active="activeTab" sticky offset-top="46px" @change="onTabChange">
+      <van-tab title="全部">
+        <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
+          <van-list
+            v-model:loading="loading"
+            :finished="finished"
+            :finished-text="needList.length > 0 ? '没有更多了' : ''"
+            @load="onLoad"
+          >
+            <div
+              v-for="item in needList"
+              :key="item.id"
+              class="need-card"
+              @click="goDetail(item.id)"
+            >
+              <div class="need-header">
+                <span class="need-type">{{ item.type === 'express' ? '快递代领' : '其他' }}</span>
+                <van-tag :type="getStatusType(item.status)" size="small">
+                  {{ getStatusText(item.status) }}
+                </van-tag>
+              </div>
+              <h3 class="need-title">{{ item.title }}</h3>
+              <p class="need-desc">{{ item.description || '暂无描述' }}</p>
+              <div class="need-info">
+                <div class="info-item address-item">
+                  <van-icon name="location-o" />
+                  <span class="address-text">{{ item.address }}</span>
+                </div>
+                <div class="info-item">
+                  <van-icon name="gold-coin-o" />
+                  <span class="reward">¥{{ item.reward }}</span>
+                </div>
+              </div>
+              <div v-if="item.distanceText" class="distance-info">
+                <van-icon name="location" size="12" />
+                <span>距您 {{ item.distanceText }}</span>
+              </div>
+              <div class="need-footer">
+                <div class="publisher">
+                  <van-icon name="user-o" />
+                  <span>{{ item.publisher_name }}</span>
+                </div>
+                <span class="time">{{ formatTime(item.created_at) }}</span>
+              </div>
+            </div>
+            <div v-if="needList.length === 0 && !loading" class="empty-wrap">
+              <van-empty description="暂无需求" />
+            </div>
+          </van-list>
+        </van-pull-refresh>
+      </van-tab>
+      <van-tab title="待接单">
+        <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
+          <van-list
+            v-model:loading="loading"
+            :finished="finished"
+            :finished-text="pendingList.length > 0 ? '没有更多了' : ''"
+            @load="onLoad"
+          >
+            <div
+              v-for="item in pendingList"
+              :key="item.id"
+              class="need-card"
+              @click="goDetail(item.id)"
+            >
+              <div class="need-header">
+                <span class="need-type">{{ item.type === 'express' ? '快递代领' : '其他' }}</span>
+                <van-tag type="warning" size="small">待接单</van-tag>
+              </div>
+              <h3 class="need-title">{{ item.title }}</h3>
+              <p class="need-desc">{{ item.description || '暂无描述' }}</p>
+              <div class="need-info">
+                <div class="info-item address-item">
+                  <van-icon name="location-o" />
+                  <span class="address-text">{{ item.address }}</span>
+                </div>
+                <div class="info-item">
+                  <van-icon name="gold-coin-o" />
+                  <span class="reward">¥{{ item.reward }}</span>
+                </div>
+              </div>
+              <div v-if="item.distanceText" class="distance-info">
+                <van-icon name="location" size="12" />
+                <span>距您 {{ item.distanceText }}</span>
+              </div>
+              <div class="need-footer">
+                <div class="publisher">
+                  <van-icon name="user-o" />
+                  <span>{{ item.publisher_name }}</span>
+                </div>
+                <span class="time">{{ formatTime(item.created_at) }}</span>
+              </div>
+            </div>
+            <div v-if="pendingList.length === 0 && !loading" class="empty-wrap">
+              <van-empty description="暂无待接单需求" />
+            </div>
+          </van-list>
+        </van-pull-refresh>
+      </van-tab>
+      <van-tab title="进行中">
+        <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
+          <van-list
+            v-model:loading="loading"
+            :finished="finished"
+            :finished-text="progressList.length > 0 ? '没有更多了' : ''"
+            @load="onLoad"
+          >
+            <div
+              v-for="item in progressList"
+              :key="item.id"
+              class="need-card"
+              @click="goDetail(item.id)"
+            >
+              <div class="need-header">
+                <span class="need-type">{{ item.type === 'express' ? '快递代领' : '其他' }}</span>
+                <van-tag type="primary" size="small">进行中</van-tag>
+              </div>
+              <h3 class="need-title">{{ item.title }}</h3>
+              <p class="need-desc">{{ item.description || '暂无描述' }}</p>
+              <div class="need-info">
+                <div class="info-item address-item">
+                  <van-icon name="location-o" />
+                  <span class="address-text">{{ item.address }}</span>
+                </div>
+                <div class="info-item">
+                  <van-icon name="gold-coin-o" />
+                  <span class="reward">¥{{ item.reward }}</span>
+                </div>
+              </div>
+              <div v-if="item.distanceText" class="distance-info">
+                <van-icon name="location" size="12" />
+                <span>距您 {{ item.distanceText }}</span>
+              </div>
+              <div class="need-footer">
+                <div class="publisher">
+                  <van-icon name="user-o" />
+                  <span>{{ item.publisher_name }}</span>
+                </div>
+                <span class="time">{{ formatTime(item.created_at) }}</span>
+              </div>
+            </div>
+            <div v-if="progressList.length === 0 && !loading" class="empty-wrap">
+              <van-empty description="暂无进行中需求" />
+            </div>
+          </van-list>
+        </van-pull-refresh>
+      </van-tab>
+    </van-tabs>
+
+    <van-fab
+      v-if="activeTab === 0"
+      icon="plus"
+      type="primary"
+      @click="goPublish"
+      class="fab-btn"
+    />
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { getNeedList } from '@/api/need'
+import { getCachedLocation, calculateDistance, formatDistance } from '@/utils/location'
+
+const router = useRouter()
+const activeTab = ref(0)
+const loading = ref(false)
+const refreshing = ref(false)
+const finished = ref(false)
+const page = ref(1)
+const pageSize = ref(10)
+const needList = ref([])
+const pendingList = ref([])
+const progressList = ref([])
+
+const statusMap = {
+  0: '',
+  1: 0,
+  2: 1
+}
+
+const getStatusType = (status) => {
+  const types = ['warning', 'primary', 'success', 'danger']
+  return types[status] || 'default'
+}
+
+const getStatusText = (status) => {
+  const texts = ['待接单', '进行中', '已完成', '已取消']
+  return texts[status] || '未知'
+}
+
+const formatTime = (time) => {
+  if (!time) return ''
+  const date = new Date(time)
+  const now = new Date()
+  const diff = now - date
+  const minutes = Math.floor(diff / 60000)
+  const hours = Math.floor(diff / 3600000)
+  const days = Math.floor(diff / 86400000)
+
+  if (minutes < 1) return '刚刚'
+  if (minutes < 60) return `${minutes}分钟前`
+  if (hours < 24) return `${hours}小时前`
+  if (days < 7) return `${days}天前`
+  return time.slice(0, 10)
+}
+
+const addDistanceToItems = (items) => {
+  const userLocation = getCachedLocation()
+  if (!userLocation) return items
+
+  return items.map(item => {
+    const distance = calculateDistance(
+      userLocation.latitude,
+      userLocation.longitude,
+      item.latitude,
+      item.longitude
+    )
+    return {
+      ...item,
+      distanceText: formatDistance(distance)
+    }
+  })
+}
+
+const fetchNeedList = async (isRefresh = false) => {
+  if (isRefresh) {
+    page.value = 1
+    finished.value = false
+    if (activeTab.value === 0) needList.value = []
+    if (activeTab.value === 1) pendingList.value = []
+    if (activeTab.value === 2) progressList.value = []
+  }
+
+  loading.value = true
+  try {
+    const status = statusMap[activeTab.value]
+    const res = await getNeedList({
+      page: page.value,
+      pageSize: pageSize.value,
+      status: status !== '' ? status : undefined
+    })
+    const list = addDistanceToItems(res.data.list)
+    if (activeTab.value === 0) {
+      needList.value = isRefresh ? list : [...needList.value, ...list]
+      if (needList.value.length >= res.data.total) finished.value = true
+    } else if (activeTab.value === 1) {
+      pendingList.value = isRefresh ? list : [...pendingList.value, ...list]
+      if (pendingList.value.length >= res.data.total) finished.value = true
+    } else if (activeTab.value === 2) {
+      progressList.value = isRefresh ? list : [...progressList.value, ...list]
+      if (progressList.value.length >= res.data.total) finished.value = true
+    }
+    if (!finished.value) page.value++
+  } catch (err) {
+    console.error(err)
+    finished.value = true
+  } finally {
+    loading.value = false
+    refreshing.value = false
+  }
+}
+
+const onTabChange = () => {
+  page.value = 1
+  finished.value = false
+  fetchNeedList(true)
+}
+
+const onLoad = () => {
+  fetchNeedList()
+}
+
+const onRefresh = () => {
+  fetchNeedList(true)
+}
+
+const goPublish = () => {
+  router.push('/publish')
+}
+
+const goDetail = (id) => {
+  router.push(`/need-detail/${id}`)
+}
+
+onMounted(() => {
+  fetchNeedList()
+})
+</script>
+
+<style scoped>
+.home-page {
+  background-color: #f5f5f5;
+}
+
+.banner {
+  margin: 12px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  overflow: hidden;
+}
+
+.banner-content {
+  padding: 20px;
+  color: #fff;
+}
+
+.banner-content h2 {
+  font-size: 20px;
+  margin-bottom: 8px;
+}
+
+.banner-content p {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.need-list {
+  padding: 0 12px 12px;
+}
+
+.van-pull-refresh {
+  min-height: 300px;
+}
+
+.need-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.need-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.need-type {
+  background: #f0f2ff;
+  color: #667eea;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.need-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #333;
+}
+
+.need-desc {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 12px;
+  line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.need-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  color: #999;
+}
+
+.info-item .van-icon {
+  margin-right: 4px;
+}
+
+.address-item {
+  flex: 1;
+  margin-right: 12px;
+}
+
+.address-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.distance-info {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  color: #667eea;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #f0f0f0;
+}
+
+.distance-info .van-icon {
+  margin-right: 4px;
+}
+
+.reward {
+  color: #ff6034;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.need-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f0;
+  font-size: 12px;
+  color: #999;
+}
+
+.publisher {
+  display: flex;
+  align-items: center;
+}
+
+.publisher .van-icon {
+  margin-right: 4px;
+}
+
+.loading-wrap,
+.empty-wrap {
+  padding: 40px 0;
+  text-align: center;
+}
+
+.fab-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+</style>
