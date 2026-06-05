@@ -13,6 +13,13 @@
       </div>
     </div>
 
+    <div class="filter-section">
+      <van-dropdown-menu active-color="#667eea">
+        <van-dropdown-item v-model="filterType" :options="typeOptions" @change="onFilterChange" />
+        <van-dropdown-item v-model="filterTime" :options="timeOptions" @change="onFilterChange" />
+      </van-dropdown-menu>
+    </div>
+
     <van-tabs v-model:active="activeTab" sticky offset-top="46px" @change="onTabChange">
       <van-tab title="全部">
         <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
@@ -29,13 +36,17 @@
               @click="goDetail(item.id)"
             >
               <div class="need-header">
-                <span class="need-type">{{ item.type === 'express' ? '快递代领' : '其他' }}</span>
+                <span class="need-type">{{ getTypeText(item.type) }}</span>
                 <van-tag :type="getStatusType(item.status)" size="small">
                   {{ getStatusText(item.status) }}
                 </van-tag>
               </div>
               <h3 class="need-title">{{ item.title }}</h3>
               <p class="need-desc">{{ item.description || '暂无描述' }}</p>
+              <div v-if="item.pickup_code" class="pickup-code-info">
+                <van-icon name="lock" size="12" />
+                <span>取件码：{{ item.pickup_code }}</span>
+              </div>
               <div class="need-info">
                 <div class="info-item address-item">
                   <van-icon name="location-o" />
@@ -79,11 +90,15 @@
               @click="goDetail(item.id)"
             >
               <div class="need-header">
-                <span class="need-type">{{ item.type === 'express' ? '快递代领' : '其他' }}</span>
+                <span class="need-type">{{ getTypeText(item.type) }}</span>
                 <van-tag type="warning" size="small">待接单</van-tag>
               </div>
               <h3 class="need-title">{{ item.title }}</h3>
               <p class="need-desc">{{ item.description || '暂无描述' }}</p>
+              <div v-if="item.pickup_code" class="pickup-code-info">
+                <van-icon name="lock" size="12" />
+                <span>取件码：{{ item.pickup_code }}</span>
+              </div>
               <div class="need-info">
                 <div class="info-item address-item">
                   <van-icon name="location-o" />
@@ -127,11 +142,15 @@
               @click="goDetail(item.id)"
             >
               <div class="need-header">
-                <span class="need-type">{{ item.type === 'express' ? '快递代领' : '其他' }}</span>
+                <span class="need-type">{{ getTypeText(item.type) }}</span>
                 <van-tag type="primary" size="small">进行中</van-tag>
               </div>
               <h3 class="need-title">{{ item.title }}</h3>
               <p class="need-desc">{{ item.description || '暂无描述' }}</p>
+              <div v-if="item.pickup_code" class="pickup-code-info">
+                <van-icon name="lock" size="12" />
+                <span>取件码：{{ item.pickup_code }}</span>
+              </div>
               <div class="need-info">
                 <div class="info-item address-item">
                   <van-icon name="location-o" />
@@ -188,6 +207,52 @@ const pageSize = ref(10)
 const needList = ref([])
 const pendingList = ref([])
 const progressList = ref([])
+const filterType = ref('')
+const filterTime = ref('')
+
+const typeOptions = [
+  { text: '全部类型', value: '' },
+  { text: '快递代取', value: 'express' }
+]
+
+const timeOptions = [
+  { text: '全部时间', value: '' },
+  { text: '最近1小时', value: '1h' },
+  { text: '最近24小时', value: '24h' },
+  { text: '最近7天', value: '7d' },
+  { text: '最近30天', value: '30d' }
+]
+
+const getTimeRange = (timeFilter) => {
+  if (!timeFilter) return {}
+  const now = new Date()
+  let startTime
+  switch (timeFilter) {
+    case '1h':
+      startTime = new Date(now.getTime() - 3600000)
+      break
+    case '24h':
+      startTime = new Date(now.getTime() - 86400000)
+      break
+    case '7d':
+      startTime = new Date(now.getTime() - 7 * 86400000)
+      break
+    case '30d':
+      startTime = new Date(now.getTime() - 30 * 86400000)
+      break
+    default:
+      return {}
+  }
+  return { startTime: startTime.toISOString().slice(0, 19).replace('T', ' ') }
+}
+
+const typeMap = {
+  express: '快递代取'
+}
+
+const getTypeText = (type) => {
+  return typeMap[type] || '其他'
+}
 
 const statusMap = {
   0: '',
@@ -251,10 +316,13 @@ const fetchNeedList = async (isRefresh = false) => {
   loading.value = true
   try {
     const status = statusMap[activeTab.value]
+    const timeRange = getTimeRange(filterTime.value)
     const res = await getNeedList({
       page: page.value,
       pageSize: pageSize.value,
-      status: status !== '' ? status : undefined
+      status: status !== '' ? status : undefined,
+      type: filterType.value || undefined,
+      ...timeRange
     })
     const list = addDistanceToItems(res.data.list)
     if (activeTab.value === 0) {
@@ -278,6 +346,12 @@ const fetchNeedList = async (isRefresh = false) => {
 }
 
 const onTabChange = () => {
+  page.value = 1
+  finished.value = false
+  fetchNeedList(true)
+}
+
+const onFilterChange = () => {
   page.value = 1
   finished.value = false
   fetchNeedList(true)
@@ -329,6 +403,31 @@ onMounted(() => {
 .banner-content p {
   font-size: 14px;
   opacity: 0.9;
+}
+
+.filter-section {
+  margin: 0 12px 0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.filter-section :deep(.van-dropdown-menu) {
+  border-radius: 8px;
+}
+
+.pickup-code-info {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  color: #ff9800;
+  margin-bottom: 8px;
+  padding: 4px 8px;
+  background: #fff9e6;
+  border-radius: 4px;
+}
+
+.pickup-code-info .van-icon {
+  margin-right: 4px;
 }
 
 .need-list {

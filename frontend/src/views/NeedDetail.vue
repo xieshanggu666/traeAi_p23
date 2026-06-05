@@ -11,7 +11,7 @@
           <van-tag :type="getStatusType(needDetail.status)" size="medium">
             {{ getStatusText(needDetail.status) }}
           </van-tag>
-          <span class="need-type">{{ needDetail.type === 'express' ? '快递代领' : '其他' }}</span>
+          <span class="need-type">{{ getTypeText(needDetail.type) }}</span>
         </div>
         <h2 class="detail-title">{{ needDetail.title }}</h2>
         <div class="detail-time">
@@ -22,6 +22,14 @@
       <div class="detail-section">
         <h3 class="section-title">需求描述</h3>
         <p class="section-content">{{ needDetail.description || '暂无描述' }}</p>
+      </div>
+
+      <div v-if="needDetail.pickup_code" class="detail-section">
+        <h3 class="section-title">取件码</h3>
+        <div class="pickup-code-display">
+          <span class="pickup-code-value">{{ needDetail.pickup_code }}</span>
+          <span v-if="isPickCodeMasked" class="pickup-code-tip">（仅发布者和接取人可见）</span>
+        </div>
       </div>
 
       <div class="detail-section" @click="openAddressNavigation">
@@ -159,6 +167,19 @@ const isReceiver = computed(() => {
 const canViewPhone = computed(() => {
   return isPublisher.value || isReceiver.value
 })
+
+const isPickCodeMasked = computed(() => {
+  if (!needDetail.value || !needDetail.value.pickup_code) return false
+  return /^\*+$/.test(needDetail.value.pickup_code)
+})
+
+const typeMap = {
+  express: '快递代取'
+}
+
+const getTypeText = (type) => {
+  return typeMap[type] || '其他'
+}
 
 const showActionBar = computed(() => {
   if (!needDetail.value) return false
@@ -419,6 +440,24 @@ onMounted(() => {
   padding-left: 22px;
   font-size: 13px;
   color: #667eea;
+}
+
+.pickup-code-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pickup-code-value {
+  font-size: 20px;
+  font-weight: 600;
+  color: #ff9800;
+  letter-spacing: 2px;
+}
+
+.pickup-code-tip {
+  font-size: 12px;
+  color: #999;
 }
 
 .reward-section {

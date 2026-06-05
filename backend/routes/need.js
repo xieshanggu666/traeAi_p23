@@ -17,7 +17,7 @@ const sendMessage = async (userId, title, content, type = 'system', relatedId = 
 
 router.get('/list', authMiddleware, async (req, res) => {
   try {
-    const { status, page = 1, pageSize = 10 } = req.query;
+    const { status, type, startTime, endTime, page = 1, pageSize = 10 } = req.query;
     const pageNum = parseInt(page, 10) || 1;
     const sizeNum = parseInt(pageSize, 10) || 10;
     const offsetNum = Math.floor((pageNum - 1) * sizeNum);
@@ -31,28 +31,57 @@ router.get('/list', authMiddleware, async (req, res) => {
     let countSql = 'SELECT COUNT(*) as total FROM needs';
     const params = [];
     const countParams = [];
+    const conditions = [];
 
     if (status !== undefined && status !== '' && status !== null) {
-      sql += ' WHERE n.status = ?';
-      countSql += ' WHERE status = ?';
+      conditions.push('n.status = ?');
       const statusNum = parseInt(status, 10);
       params.push(statusNum);
       countParams.push(statusNum);
     } else {
-      sql += ' WHERE n.status != 3';
-      countSql += ' WHERE status != 3';
+      conditions.push('n.status != 3');
     }
+
+    if (type !== undefined && type !== '' && type !== null) {
+      conditions.push('n.type = ?');
+      params.push(type);
+      countParams.push(type);
+    }
+
+    if (startTime !== undefined && startTime !== '' && startTime !== null) {
+      conditions.push('n.created_at >= ?');
+      params.push(startTime);
+      countParams.push(startTime);
+    }
+
+    if (endTime !== undefined && endTime !== '' && endTime !== null) {
+      conditions.push('n.created_at <= ?');
+      params.push(endTime);
+      countParams.push(endTime);
+    }
+
+    const whereClause = conditions.length > 0 ? ' WHERE ' + conditions.join(' AND ') : '';
+    sql += whereClause;
+    countSql += whereClause.replace(/n\./g, '');
 
     sql += ` ORDER BY n.created_at DESC LIMIT ${sizeNum} OFFSET ${offsetNum}`;
 
     const [list] = await pool.execute(sql, params);
     const [countResult] = await pool.execute(countSql, countParams);
 
+    const userId = req.user.id;
+    const maskedList = list.map(item => {
+      if (item.pickup_code && item.user_id !== userId && item.receiver_id !== userId) {
+        return { ...item, pickup_code: '*'.repeat(item.pickup_code.length) };
+      }
+      return item;
+    });
+
     res.json({
       code: 200,
       message: '获取成功',
       data: {
-        list,
+        list: maskedList,
         total: countResult[0].total,
         page: pageNum,
         pageSize: sizeNum
@@ -66,16 +95,20 @@ router.get('/list', authMiddleware, async (req, res) => {
 
 router.post('/publish', authMiddleware, async (req, res) => {
   try {
-    const { title, description, address, latitude, longitude, reward, type = 'express' } = req.body;
+    const { title, description, address, latitude, longitude, reward, type = 'express', pickup_code } = req.body;
     const userId = req.user.id;
 
     if (!title || !address) {
       return res.json({ code: 400, message: '标题和地址不能为空' });
     }
 
+    if (type === 'express' && !pickup_code) {
+      return res.json({ code: 400, message: '快递代取类型必须填写取件码' });
+    }
+
     const [result] = await pool.execute(
-      'INSERT INTO needs (user_id, type, title, description, address, latitude, longitude, reward) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [userId, type, title, description || '', address, latitude || null, longitude || null, reward || 0]
+      'INSERT INTO needs (user_id, type, title, description, address, latitude, longitude, reward, pickup_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [userId, type, title, description || '', address, latitude || null, longitude || null, reward || 0, type === 'express' ? pickup_code : null]
     );
 
     res.json({
@@ -257,7 +290,13 @@ router.get('/:id', authMiddleware, async (req, res) => {
       return res.json({ code: 400, message: '需求不存在' });
     }
 
-    res.json({ code: 200, message: '获取成功', data: needs[0] });
+    const need = needs[0];
+    const userId = req.user.id;
+    if (need.pickup_code && need.user_id !== userId && need.receiver_id !== userId) {
+      need.pickup_code = '*'.repeat(need.pickup_code.length);
+    }
+
+    res.json({ code: 200, message: '获取成功', data: need });
   } catch (err) {
     console.error(err);
     res.json({ code: 500, message: '服务器错误' });

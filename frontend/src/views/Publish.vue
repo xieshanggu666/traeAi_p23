@@ -13,12 +13,29 @@
             :rules="[{ required: true, message: '请填写需求标题' }]"
           />
           <van-field
+            v-model="typeName"
+            is-link
+            readonly
+            label="需求类型"
+            placeholder="请选择需求类型"
+            @click="showTypePicker = true"
+            :rules="[{ required: true, message: '请选择需求类型' }]"
+          />
+          <van-field
             v-model="form.description"
             name="description"
             label="描述"
             type="textarea"
             placeholder="请详细描述您的需求"
             rows="4"
+          />
+          <van-field
+            v-if="form.type === 'express'"
+            v-model="form.pickup_code"
+            name="pickup_code"
+            label="取件码"
+            placeholder="请输入快递取件码"
+            :rules="[{ required: form.type === 'express', message: '请输入取件码' }]"
           />
           <van-field
             v-model="form.address"
@@ -43,6 +60,7 @@
           <h4>温馨提示：</h4>
           <ul>
             <li>请准确填写取件地址和快递信息</li>
+            <li v-if="form.type === 'express'">取件码仅发布者和接取人可见，其他人看到为星号</li>
             <li>酬金是给帮您代领的小伙伴的感谢费哦</li>
             <li>请保持电话畅通，方便接单者联系</li>
           </ul>
@@ -55,11 +73,19 @@
         </div>
       </van-form>
     </div>
+
+    <van-popup v-model:show="showTypePicker" round position="bottom">
+      <van-picker
+        :columns="typeColumns"
+        @confirm="onTypeConfirm"
+        @cancel="showTypePicker = false"
+      />
+    </van-popup>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showToast } from 'vant'
 import { useUserStore } from '@/store/user'
@@ -70,6 +96,21 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const loading = ref(false)
+const showTypePicker = ref(false)
+
+const typeColumns = [
+  { text: '快递代取', value: 'express' }
+]
+
+const typeName = computed(() => {
+  const item = typeColumns.find(c => c.value === form.type)
+  return item ? item.text : ''
+})
+
+const onTypeConfirm = ({ selectedValues }) => {
+  form.type = selectedValues[0]
+  showTypePicker.value = false
+}
 
 const form = reactive({
   title: '',
@@ -78,7 +119,8 @@ const form = reactive({
   latitude: null,
   longitude: null,
   reward: '',
-  type: 'express'
+  type: 'express',
+  pickup_code: ''
 })
 
 onMounted(async () => {
@@ -113,7 +155,8 @@ const goMapPicker = () => {
     title: form.title,
     description: form.description,
     reward: form.reward,
-    type: form.type
+    type: form.type,
+    pickup_code: form.pickup_code
   }))
   router.push('/map-picker')
 }
@@ -128,6 +171,8 @@ const onSubmit = async (values) => {
     loading.value = true
     await publishNeed({
       ...values,
+      type: form.type,
+      pickup_code: form.type === 'express' ? form.pickup_code : undefined,
       latitude: form.latitude,
       longitude: form.longitude
     })

@@ -54,6 +54,7 @@ const createTables = async () => {
       longitude DECIMAL(10,7),
       reward DECIMAL(10,2) DEFAULT 0,
       status TINYINT DEFAULT 0 COMMENT '0:待接单 1:已接单 2:已完成 3:已取消',
+      pickup_code VARCHAR(50) DEFAULT NULL,
       receiver_id INT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -75,6 +76,13 @@ const createTables = async () => {
     } catch (err) {
       if (!err.message.includes('Duplicate column name')) {
         console.error('添加longitude列失败:', err.message);
+      }
+    }
+    try {
+      await pool.execute('ALTER TABLE needs ADD COLUMN pickup_code VARCHAR(50) DEFAULT NULL');
+    } catch (err) {
+      if (!err.message.includes('Duplicate column name')) {
+        console.error('添加pickup_code列失败:', err.message);
       }
     }
   };

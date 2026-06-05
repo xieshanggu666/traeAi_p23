@@ -13,12 +13,16 @@
         @click="goDetail(item.id)"
       >
         <div class="need-header">
-          <span class="need-type">{{ item.type === 'express' ? '快递代领' : '其他' }}</span>
+          <span class="need-type">{{ getTypeText(item.type) }}</span>
           <van-tag :type="getStatusType(item.status)" size="small">
             {{ getStatusText(item.status) }}
           </van-tag>
         </div>
         <h3 class="need-title">{{ item.title }}</h3>
+        <div v-if="item.pickup_code" class="pickup-code-info">
+          <van-icon name="lock" size="12" />
+          <span>取件码：{{ item.pickup_code }}</span>
+        </div>
         <div class="need-info">
           <div class="info-item address-item">
             <van-icon name="location-o" />
@@ -85,6 +89,14 @@ const getStatusText = (status) => {
   return texts[status] || '未知'
 }
 
+const typeMap = {
+  express: '快递代取'
+}
+
+const getTypeText = (type) => {
+  return typeMap[type] || '其他'
+}
+
 const formatTime = (time) => {
   if (!time) return ''
   return time.slice(0, 16).replace('T', ' ')
@@ -142,6 +154,21 @@ onMounted(() => {
   padding: 4px 10px;
   border-radius: 4px;
   font-size: 12px;
+}
+
+.pickup-code-info {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  color: #ff9800;
+  margin-bottom: 8px;
+  padding: 4px 8px;
+  background: #fff9e6;
+  border-radius: 4px;
+}
+
+.pickup-code-info .van-icon {
+  margin-right: 4px;
 }
 
 .need-title {
