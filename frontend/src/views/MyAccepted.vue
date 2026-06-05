@@ -90,7 +90,9 @@ const getStatusText = (status) => {
 }
 
 const typeMap = {
-  express: '快递代取'
+  express: '快递代取',
+  pet: '宠物喂养',
+  errand: '跑腿送货'
 }
 
 const getTypeText = (type) => {

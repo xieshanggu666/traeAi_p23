@@ -85,6 +85,62 @@ const createTables = async () => {
         console.error('添加pickup_code列失败:', err.message);
       }
     }
+    try {
+      await pool.execute('ALTER TABLE needs ADD COLUMN pet_info VARCHAR(255) DEFAULT NULL');
+    } catch (err) {
+      if (!err.message.includes('Duplicate column name')) {
+        console.error('添加pet_info列失败:', err.message);
+      }
+    }
+    try {
+      await pool.execute('ALTER TABLE needs ADD COLUMN pet_size VARCHAR(20) DEFAULT NULL');
+    } catch (err) {
+      if (!err.message.includes('Duplicate column name')) {
+        console.error('添加pet_size列失败:', err.message);
+      }
+    }
+    try {
+      await pool.execute('ALTER TABLE needs ADD COLUMN pet_gentle TINYINT DEFAULT NULL');
+    } catch (err) {
+      if (!err.message.includes('Duplicate column name')) {
+        console.error('添加pet_gentle列失败:', err.message);
+      }
+    }
+    try {
+      await pool.execute('ALTER TABLE needs ADD COLUMN item_info VARCHAR(255) DEFAULT NULL');
+    } catch (err) {
+      if (!err.message.includes('Duplicate column name')) {
+        console.error('添加item_info列失败:', err.message);
+      }
+    }
+    try {
+      await pool.execute('ALTER TABLE needs ADD COLUMN item_size VARCHAR(20) DEFAULT NULL');
+    } catch (err) {
+      if (!err.message.includes('Duplicate column name')) {
+        console.error('添加item_size列失败:', err.message);
+      }
+    }
+    try {
+      await pool.execute('ALTER TABLE needs ADD COLUMN dest_address VARCHAR(255) DEFAULT NULL');
+    } catch (err) {
+      if (!err.message.includes('Duplicate column name')) {
+        console.error('添加dest_address列失败:', err.message);
+      }
+    }
+    try {
+      await pool.execute('ALTER TABLE needs ADD COLUMN dest_latitude DECIMAL(10,7) DEFAULT NULL');
+    } catch (err) {
+      if (!err.message.includes('Duplicate column name')) {
+        console.error('添加dest_latitude列失败:', err.message);
+      }
+    }
+    try {
+      await pool.execute('ALTER TABLE needs ADD COLUMN dest_longitude DECIMAL(10,7) DEFAULT NULL');
+    } catch (err) {
+      if (!err.message.includes('Duplicate column name')) {
+        console.error('添加dest_longitude列失败:', err.message);
+      }
+    }
   };
 
   const alterMessagesTable = async () => {

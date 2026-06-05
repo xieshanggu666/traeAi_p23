@@ -32,8 +32,42 @@
         </div>
       </div>
 
+      <div v-if="needDetail.type === 'pet'" class="detail-section">
+        <h3 class="section-title">宠物信息</h3>
+        <div class="info-grid">
+          <div class="info-row">
+            <span class="info-label">宠物信息</span>
+            <span class="info-value">{{ needDetail.pet_info }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">宠物大小</span>
+            <span class="info-value">{{ petSizeText }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">是否温顺</span>
+            <span class="info-value" :class="needDetail.pet_gentle ? 'gentle-yes' : 'gentle-no'">
+              {{ needDetail.pet_gentle ? '温顺' : '不温顺，请注意安全' }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="needDetail.type === 'errand'" class="detail-section">
+        <h3 class="section-title">物品信息</h3>
+        <div class="info-grid">
+          <div class="info-row">
+            <span class="info-label">物品信息</span>
+            <span class="info-value">{{ needDetail.item_info }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">物品大小</span>
+            <span class="info-value">{{ itemSizeText }}</span>
+          </div>
+        </div>
+      </div>
+
       <div class="detail-section" @click="openAddressNavigation">
-        <h3 class="section-title">取件地址</h3>
+        <h3 class="section-title">{{ addressSectionTitle }}</h3>
         <p class="section-content address clickable">
           <van-icon name="location-o" size="16" color="#ff6034" />
           <span class="address-text">{{ needDetail.address }}</span>
@@ -41,6 +75,15 @@
         </p>
         <p v-if="needDetail.distanceText" class="distance-text">
           距您 {{ needDetail.distanceText }}
+        </p>
+      </div>
+
+      <div v-if="needDetail.type === 'errand' && needDetail.dest_address" class="detail-section" @click="openDestNavigation">
+        <h3 class="section-title">目的地地址</h3>
+        <p class="section-content address clickable">
+          <van-icon name="location-o" size="16" color="#07c160" />
+          <span class="address-text">{{ needDetail.dest_address }}</span>
+          <van-icon name="arrow" size="14" class="nav-arrow" />
         </p>
       </div>
 
@@ -174,12 +217,43 @@ const isPickCodeMasked = computed(() => {
 })
 
 const typeMap = {
-  express: '快递代取'
+  express: '快递代取',
+  pet: '宠物喂养',
+  errand: '跑腿送货'
+}
+
+const petSizeMap = {
+  small: '小型（10kg以下）',
+  medium: '中型（10-25kg）',
+  large: '大型（25kg以上）'
+}
+
+const itemSizeMap = {
+  small: '小件（可手持）',
+  medium: '中件（需搬运）',
+  large: '大件（需车辆）'
 }
 
 const getTypeText = (type) => {
   return typeMap[type] || '其他'
 }
+
+const petSizeText = computed(() => {
+  if (!needDetail.value) return ''
+  return petSizeMap[needDetail.value.pet_size] || needDetail.value.pet_size || ''
+})
+
+const itemSizeText = computed(() => {
+  if (!needDetail.value) return ''
+  return itemSizeMap[needDetail.value.item_size] || needDetail.value.item_size || ''
+})
+
+const addressSectionTitle = computed(() => {
+  if (!needDetail.value) return '地址'
+  if (needDetail.value.type === 'errand') return '取货地址'
+  if (needDetail.value.type === 'pet') return '详细地址'
+  return '取件地址'
+})
 
 const showActionBar = computed(() => {
   if (!needDetail.value) return false
@@ -246,6 +320,16 @@ const openAddressNavigation = () => {
     needDetail.value.longitude,
     needDetail.value.title,
     needDetail.value.address
+  )
+}
+
+const openDestNavigation = () => {
+  if (!needDetail.value) return
+  openNavigation(
+    needDetail.value.dest_latitude,
+    needDetail.value.dest_longitude,
+    needDetail.value.title,
+    needDetail.value.dest_address
   )
 }
 
@@ -458,6 +542,38 @@ onMounted(() => {
 .pickup-code-tip {
   font-size: 12px;
   color: #999;
+}
+
+.info-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.info-row {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+}
+
+.info-label {
+  color: #999;
+  width: 80px;
+  flex-shrink: 0;
+}
+
+.info-value {
+  color: #333;
+  flex: 1;
+}
+
+.gentle-yes {
+  color: #07c160;
+}
+
+.gentle-no {
+  color: #ff6034;
+  font-weight: 500;
 }
 
 .reward-section {

@@ -95,7 +95,13 @@ router.get('/list', authMiddleware, async (req, res) => {
 
 router.post('/publish', authMiddleware, async (req, res) => {
   try {
-    const { title, description, address, latitude, longitude, reward, type = 'express', pickup_code } = req.body;
+    const {
+      title, description, address, latitude, longitude, reward,
+      type = 'express', pickup_code,
+      pet_info, pet_size, pet_gentle,
+      item_info, item_size,
+      dest_address, dest_latitude, dest_longitude
+    } = req.body;
     const userId = req.user.id;
 
     if (!title || !address) {
@@ -106,9 +112,34 @@ router.post('/publish', authMiddleware, async (req, res) => {
       return res.json({ code: 400, message: '快递代取类型必须填写取件码' });
     }
 
+    if (type === 'pet' && !pet_info) {
+      return res.json({ code: 400, message: '宠物喂养类型必须填写宠物信息' });
+    }
+
+    if (type === 'errand' && !item_info) {
+      return res.json({ code: 400, message: '跑腿送货类型必须填写物品信息' });
+    }
+
+    if (type === 'errand' && !dest_address) {
+      return res.json({ code: 400, message: '跑腿送货类型必须填写目的地地址' });
+    }
+
     const [result] = await pool.execute(
-      'INSERT INTO needs (user_id, type, title, description, address, latitude, longitude, reward, pickup_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [userId, type, title, description || '', address, latitude || null, longitude || null, reward || 0, type === 'express' ? pickup_code : null]
+      `INSERT INTO needs (user_id, type, title, description, address, latitude, longitude, reward, pickup_code,
+        pet_info, pet_size, pet_gentle, item_info, item_size, dest_address, dest_latitude, dest_longitude)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        userId, type, title, description || '', address, latitude || null, longitude || null, reward || 0,
+        type === 'express' ? pickup_code : null,
+        type === 'pet' ? pet_info : null,
+        type === 'pet' ? pet_size : null,
+        type === 'pet' ? (pet_gentle ? 1 : 0) : null,
+        type === 'errand' ? item_info : null,
+        type === 'errand' ? item_size : null,
+        type === 'errand' ? dest_address : null,
+        type === 'errand' ? (dest_latitude || null) : null,
+        type === 'errand' ? (dest_longitude || null) : null
+      ]
     );
 
     res.json({

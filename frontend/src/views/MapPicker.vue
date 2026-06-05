@@ -1,6 +1,6 @@
 <template>
   <div class="map-picker-page">
-    <van-nav-bar title="选择地址" left-text="返回" left-arrow @click-left="onClickLeft">
+    <van-nav-bar :title="addressType === 'dest' ? '选择目的地' : '选择地址'" left-text="返回" left-arrow @click-left="onClickLeft">
       <template #right>
         <span class="confirm-btn" @click="onConfirm" :class="{ disabled: !selectedLocation }">确定</span>
       </template>
@@ -71,6 +71,7 @@ const map = ref(null)
 const searchKeyword = ref('')
 const searchResults = ref([])
 const searchLoading = ref(false)
+const addressType = ref(route.query.addressType || 'address')
 
 const initMap = () => {
   const userLocation = getCachedLocation()
@@ -196,7 +197,8 @@ const onConfirm = () => {
     query: {
       address: selectedLocation.value.address,
       latitude: selectedLocation.value.latitude,
-      longitude: selectedLocation.value.longitude
+      longitude: selectedLocation.value.longitude,
+      addressType: addressType.value
     }
   })
 }

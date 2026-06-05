@@ -113,7 +113,9 @@ const statusOptions = [
 
 const typeOptions = [
   { text: '全部类型', value: '' },
-  { text: '快递代取', value: 'express' }
+  { text: '快递代取', value: 'express' },
+  { text: '宠物喂养', value: 'pet' },
+  { text: '跑腿送货', value: 'errand' }
 ]
 
 const timeOptions = [
@@ -148,7 +150,9 @@ const getTimeRange = (timeFilter) => {
 }
 
 const typeMap = {
-  express: '快递代取'
+  express: '快递代取',
+  pet: '宠物喂养',
+  errand: '跑腿送货'
 }
 
 const getTypeText = (type) => {
