@@ -11,8 +11,9 @@
         v-model="searchKeyword"
         placeholder="搜索地址"
         show-action
+        action-text="搜索"
         @search="onSearch"
-        @cancel="onSearchCancel"
+        @click-action="onSearch"
       />
     </div>
 
@@ -67,6 +68,7 @@ const selectedLocation = ref(null)
 const map = ref(null)
 const searchKeyword = ref('')
 const searchResults = ref([])
+const searchLoading = ref(false)
 
 const initMap = () => {
   const userLocation = getCachedLocation()
@@ -123,38 +125,64 @@ const getAddressByLocation = async (lat, lng) => {
   }
 }
 
-const onSearch = () => {
+const ensurePlaceSearch = () => {
+  return new Promise((resolve, reject) => {
+    if (window.AMap.PlaceSearch) {
+      resolve()
+      return
+    }
+    window.AMap.plugin('AMap.PlaceSearch', () => {
+      if (window.AMap.PlaceSearch) {
+        resolve()
+      } else {
+        reject(new Error('PlaceSearch 插件加载失败'))
+      }
+    })
+  })
+}
+
+const onSearch = async () => {
   if (!searchKeyword.value.trim()) {
     showToast('请输入搜索关键词')
     return
   }
-  const placeSearch = new window.AMap.PlaceSearch({
-    pageSize: 10,
-    pageIndex: 1
-  })
-  placeSearch.search(searchKeyword.value, (status, result) => {
-    if (status === 'complete' && result.poiList) {
-      searchResults.value = result.poiList.pois.map(poi => ({
-        id: poi.id,
-        name: poi.name,
-        address: poi.address,
-        district: poi.pname + poi.cityname + poi.adname,
-        latitude: poi.location.lat,
-        longitude: poi.location.lng,
-        province: poi.pname,
-        city: poi.cityname,
-        districtName: poi.adname
-      }))
-    } else {
-      searchResults.value = []
-      showToast('未找到相关地址')
-    }
-  })
-}
 
-const onSearchCancel = () => {
-  searchKeyword.value = ''
-  searchResults.value = []
+  if (searchLoading.value) return
+  searchLoading.value = true
+
+  try {
+    await ensurePlaceSearch()
+    const placeSearch = new window.AMap.PlaceSearch({
+      pageSize: 10,
+      pageIndex: 1
+    })
+    placeSearch.search(searchKeyword.value, (status, result) => {
+      searchLoading.value = false
+      if (status === 'complete' && result.poiList) {
+        searchResults.value = result.poiList.pois.map(poi => ({
+          id: poi.id,
+          name: poi.name,
+          address: poi.address,
+          district: poi.pname + poi.cityname + poi.adname,
+          latitude: poi.location.lat,
+          longitude: poi.location.lng,
+          province: poi.pname,
+          city: poi.cityname,
+          districtName: poi.adname
+        }))
+        if (searchResults.value.length === 0) {
+          showToast('未找到相关地址')
+        }
+      } else {
+        searchResults.value = []
+        showToast('未找到相关地址')
+      }
+    })
+  } catch (err) {
+    searchLoading.value = false
+    console.error(err)
+    showToast('搜索服务加载失败，请重试')
+  }
 }
 
 const onSelectSearchResult = async (item) => {

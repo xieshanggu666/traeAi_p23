@@ -13,176 +13,70 @@
       </div>
     </div>
 
-    <div class="filter-section">
+    <div class="filter-section" :class="{ 'is-sticky': isFilterSticky }" ref="filterRef">
       <van-dropdown-menu active-color="#667eea">
+        <van-dropdown-item v-model="filterStatus" :options="statusOptions" @change="onFilterChange" />
         <van-dropdown-item v-model="filterType" :options="typeOptions" @change="onFilterChange" />
         <van-dropdown-item v-model="filterTime" :options="timeOptions" @change="onFilterChange" />
       </van-dropdown-menu>
     </div>
 
-    <van-tabs v-model:active="activeTab" sticky offset-top="46px" @change="onTabChange">
-      <van-tab title="全部">
-        <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
-          <van-list
-            v-model:loading="loading"
-            :finished="finished"
-            :finished-text="needList.length > 0 ? '没有更多了' : ''"
-            @load="onLoad"
+    <div class="list-section">
+      <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
+        <van-list
+          v-model:loading="loading"
+          :finished="finished"
+          :finished-text="needList.length > 0 ? '没有更多了' : ''"
+          @load="onLoad"
+        >
+          <div
+            v-for="item in needList"
+            :key="item.id"
+            class="need-card"
+            @click="goDetail(item.id)"
           >
-            <div
-              v-for="item in needList"
-              :key="item.id"
-              class="need-card"
-              @click="goDetail(item.id)"
-            >
-              <div class="need-header">
-                <span class="need-type">{{ getTypeText(item.type) }}</span>
-                <van-tag :type="getStatusType(item.status)" size="small">
-                  {{ getStatusText(item.status) }}
-                </van-tag>
+            <div class="need-header">
+              <span class="need-type">{{ getTypeText(item.type) }}</span>
+              <van-tag :type="getStatusType(item.status)" size="small">
+                {{ getStatusText(item.status) }}
+              </van-tag>
+            </div>
+            <h3 class="need-title">{{ item.title }}</h3>
+            <p class="need-desc">{{ item.description || '暂无描述' }}</p>
+            <div v-if="item.pickup_code" class="pickup-code-info">
+              <van-icon name="lock" size="12" />
+              <span>取件码：{{ item.pickup_code }}</span>
+            </div>
+            <div class="need-info">
+              <div class="info-item address-item">
+                <van-icon name="location-o" />
+                <span class="address-text">{{ item.address }}</span>
               </div>
-              <h3 class="need-title">{{ item.title }}</h3>
-              <p class="need-desc">{{ item.description || '暂无描述' }}</p>
-              <div v-if="item.pickup_code" class="pickup-code-info">
-                <van-icon name="lock" size="12" />
-                <span>取件码：{{ item.pickup_code }}</span>
-              </div>
-              <div class="need-info">
-                <div class="info-item address-item">
-                  <van-icon name="location-o" />
-                  <span class="address-text">{{ item.address }}</span>
-                </div>
-                <div class="info-item">
-                  <van-icon name="gold-coin-o" />
-                  <span class="reward">¥{{ item.reward }}</span>
-                </div>
-              </div>
-              <div v-if="item.distanceText" class="distance-info">
-                <van-icon name="location" size="12" />
-                <span>距您 {{ item.distanceText }}</span>
-              </div>
-              <div class="need-footer">
-                <div class="publisher">
-                  <van-icon name="user-o" />
-                  <span>{{ item.publisher_name }}</span>
-                </div>
-                <span class="time">{{ formatTime(item.created_at) }}</span>
+              <div class="info-item">
+                <van-icon name="gold-coin-o" />
+                <span class="reward">¥{{ item.reward }}</span>
               </div>
             </div>
-            <div v-if="needList.length === 0 && !loading" class="empty-wrap">
-              <van-empty description="暂无需求" />
+            <div v-if="item.distanceText" class="distance-info">
+              <van-icon name="location" size="12" />
+              <span>距您 {{ item.distanceText }}</span>
             </div>
-          </van-list>
-        </van-pull-refresh>
-      </van-tab>
-      <van-tab title="待接单">
-        <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
-          <van-list
-            v-model:loading="loading"
-            :finished="finished"
-            :finished-text="pendingList.length > 0 ? '没有更多了' : ''"
-            @load="onLoad"
-          >
-            <div
-              v-for="item in pendingList"
-              :key="item.id"
-              class="need-card"
-              @click="goDetail(item.id)"
-            >
-              <div class="need-header">
-                <span class="need-type">{{ getTypeText(item.type) }}</span>
-                <van-tag type="warning" size="small">待接单</van-tag>
+            <div class="need-footer">
+              <div class="publisher">
+                <van-icon name="user-o" />
+                <span>{{ item.publisher_name }}</span>
               </div>
-              <h3 class="need-title">{{ item.title }}</h3>
-              <p class="need-desc">{{ item.description || '暂无描述' }}</p>
-              <div v-if="item.pickup_code" class="pickup-code-info">
-                <van-icon name="lock" size="12" />
-                <span>取件码：{{ item.pickup_code }}</span>
-              </div>
-              <div class="need-info">
-                <div class="info-item address-item">
-                  <van-icon name="location-o" />
-                  <span class="address-text">{{ item.address }}</span>
-                </div>
-                <div class="info-item">
-                  <van-icon name="gold-coin-o" />
-                  <span class="reward">¥{{ item.reward }}</span>
-                </div>
-              </div>
-              <div v-if="item.distanceText" class="distance-info">
-                <van-icon name="location" size="12" />
-                <span>距您 {{ item.distanceText }}</span>
-              </div>
-              <div class="need-footer">
-                <div class="publisher">
-                  <van-icon name="user-o" />
-                  <span>{{ item.publisher_name }}</span>
-                </div>
-                <span class="time">{{ formatTime(item.created_at) }}</span>
-              </div>
+              <span class="time">{{ formatTime(item.created_at) }}</span>
             </div>
-            <div v-if="pendingList.length === 0 && !loading" class="empty-wrap">
-              <van-empty description="暂无待接单需求" />
-            </div>
-          </van-list>
-        </van-pull-refresh>
-      </van-tab>
-      <van-tab title="进行中">
-        <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
-          <van-list
-            v-model:loading="loading"
-            :finished="finished"
-            :finished-text="progressList.length > 0 ? '没有更多了' : ''"
-            @load="onLoad"
-          >
-            <div
-              v-for="item in progressList"
-              :key="item.id"
-              class="need-card"
-              @click="goDetail(item.id)"
-            >
-              <div class="need-header">
-                <span class="need-type">{{ getTypeText(item.type) }}</span>
-                <van-tag type="primary" size="small">进行中</van-tag>
-              </div>
-              <h3 class="need-title">{{ item.title }}</h3>
-              <p class="need-desc">{{ item.description || '暂无描述' }}</p>
-              <div v-if="item.pickup_code" class="pickup-code-info">
-                <van-icon name="lock" size="12" />
-                <span>取件码：{{ item.pickup_code }}</span>
-              </div>
-              <div class="need-info">
-                <div class="info-item address-item">
-                  <van-icon name="location-o" />
-                  <span class="address-text">{{ item.address }}</span>
-                </div>
-                <div class="info-item">
-                  <van-icon name="gold-coin-o" />
-                  <span class="reward">¥{{ item.reward }}</span>
-                </div>
-              </div>
-              <div v-if="item.distanceText" class="distance-info">
-                <van-icon name="location" size="12" />
-                <span>距您 {{ item.distanceText }}</span>
-              </div>
-              <div class="need-footer">
-                <div class="publisher">
-                  <van-icon name="user-o" />
-                  <span>{{ item.publisher_name }}</span>
-                </div>
-                <span class="time">{{ formatTime(item.created_at) }}</span>
-              </div>
-            </div>
-            <div v-if="progressList.length === 0 && !loading" class="empty-wrap">
-              <van-empty description="暂无进行中需求" />
-            </div>
-          </van-list>
-        </van-pull-refresh>
-      </van-tab>
-    </van-tabs>
+          </div>
+          <div v-if="needList.length === 0 && !loading" class="empty-wrap">
+            <van-empty description="暂无需求" />
+          </div>
+        </van-list>
+      </van-pull-refresh>
+    </div>
 
     <van-fab
-      v-if="activeTab === 0"
       icon="plus"
       type="primary"
       @click="goPublish"
@@ -192,23 +86,31 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { getNeedList } from '@/api/need'
 import { getCachedLocation, calculateDistance, formatDistance } from '@/utils/location'
 
 const router = useRouter()
-const activeTab = ref(0)
 const loading = ref(false)
 const refreshing = ref(false)
 const finished = ref(false)
 const page = ref(1)
 const pageSize = ref(10)
 const needList = ref([])
-const pendingList = ref([])
-const progressList = ref([])
+const filterStatus = ref('')
 const filterType = ref('')
 const filterTime = ref('')
+const filterRef = ref(null)
+const isFilterSticky = ref(false)
+
+const statusOptions = [
+  { text: '全部状态', value: '' },
+  { text: '待接单', value: 0 },
+  { text: '进行中', value: 1 },
+  { text: '已完成', value: 2 },
+  { text: '已取消', value: 3 }
+]
 
 const typeOptions = [
   { text: '全部类型', value: '' },
@@ -252,12 +154,6 @@ const typeMap = {
 
 const getTypeText = (type) => {
   return typeMap[type] || '其他'
-}
-
-const statusMap = {
-  0: '',
-  1: 0,
-  2: 1
 }
 
 const getStatusType = (status) => {
@@ -308,33 +204,22 @@ const fetchNeedList = async (isRefresh = false) => {
   if (isRefresh) {
     page.value = 1
     finished.value = false
-    if (activeTab.value === 0) needList.value = []
-    if (activeTab.value === 1) pendingList.value = []
-    if (activeTab.value === 2) progressList.value = []
+    needList.value = []
   }
 
   loading.value = true
   try {
-    const status = statusMap[activeTab.value]
     const timeRange = getTimeRange(filterTime.value)
     const res = await getNeedList({
       page: page.value,
       pageSize: pageSize.value,
-      status: status !== '' ? status : undefined,
+      status: filterStatus.value !== '' ? filterStatus.value : undefined,
       type: filterType.value || undefined,
       ...timeRange
     })
     const list = addDistanceToItems(res.data.list)
-    if (activeTab.value === 0) {
-      needList.value = isRefresh ? list : [...needList.value, ...list]
-      if (needList.value.length >= res.data.total) finished.value = true
-    } else if (activeTab.value === 1) {
-      pendingList.value = isRefresh ? list : [...pendingList.value, ...list]
-      if (pendingList.value.length >= res.data.total) finished.value = true
-    } else if (activeTab.value === 2) {
-      progressList.value = isRefresh ? list : [...progressList.value, ...list]
-      if (progressList.value.length >= res.data.total) finished.value = true
-    }
+    needList.value = isRefresh ? list : [...needList.value, ...list]
+    if (needList.value.length >= res.data.total) finished.value = true
     if (!finished.value) page.value++
   } catch (err) {
     console.error(err)
@@ -343,12 +228,6 @@ const fetchNeedList = async (isRefresh = false) => {
     loading.value = false
     refreshing.value = false
   }
-}
-
-const onTabChange = () => {
-  page.value = 1
-  finished.value = false
-  fetchNeedList(true)
 }
 
 const onFilterChange = () => {
@@ -373,8 +252,31 @@ const goDetail = (id) => {
   router.push(`/need-detail/${id}`)
 }
 
+let stickyObserver = null
+
+const setupStickyObserver = () => {
+  if (!filterRef.value) return
+  stickyObserver = new IntersectionObserver(
+    ([entry]) => {
+      isFilterSticky.value = !entry.isIntersecting
+    },
+    {
+      rootMargin: '-47px 0px 0px 0px',
+      threshold: 0
+    }
+  )
+  stickyObserver.observe(filterRef.value)
+}
+
 onMounted(() => {
   fetchNeedList()
+  setupStickyObserver()
+})
+
+onBeforeUnmount(() => {
+  if (stickyObserver) {
+    stickyObserver.disconnect()
+  }
 })
 </script>
 
@@ -406,13 +308,36 @@ onMounted(() => {
 }
 
 .filter-section {
-  margin: 0 12px 0;
+  position: sticky;
+  top: 46px;
+  z-index: 100;
+  margin: 0 12px;
   border-radius: 8px;
   overflow: hidden;
+  transition: box-shadow 0.3s ease, border-radius 0.3s ease;
+}
+
+.filter-section.is-sticky {
+  margin: 0;
+  border-radius: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .filter-section :deep(.van-dropdown-menu) {
   border-radius: 8px;
+  transition: border-radius 0.3s ease;
+}
+
+.filter-section.is-sticky :deep(.van-dropdown-menu) {
+  border-radius: 0;
+}
+
+.list-section {
+  padding: 0 12px 12px;
+}
+
+.van-pull-refresh {
+  min-height: 300px;
 }
 
 .pickup-code-info {
@@ -428,14 +353,6 @@ onMounted(() => {
 
 .pickup-code-info .van-icon {
   margin-right: 4px;
-}
-
-.need-list {
-  padding: 0 12px 12px;
-}
-
-.van-pull-refresh {
-  min-height: 300px;
 }
 
 .need-card {
